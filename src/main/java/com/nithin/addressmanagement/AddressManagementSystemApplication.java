@@ -9,5 +9,4 @@ public class AddressManagementSystemApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(AddressManagementSystemApplication.class, args);
 	}
-
 }

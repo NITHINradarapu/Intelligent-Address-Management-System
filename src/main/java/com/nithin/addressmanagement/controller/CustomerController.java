@@ -1,6 +1,5 @@
 package com.nithin.addressmanagement.controller;
 
-
 import com.nithin.addressmanagement.dto.CustomerRequestDto;
 import com.nithin.addressmanagement.dto.CustomerResponseDto;
 import com.nithin.addressmanagement.service.CustomerService;
@@ -33,7 +32,7 @@ public class CustomerController {
         return customerService.getAllCustomers();
     }
 
-    // get customer by Id
+    // get customer by id
     @GetMapping("/{id}")
     public CustomerResponseDto getCustomerById(@PathVariable Long id){
         return customerService.getCustomerById(id);

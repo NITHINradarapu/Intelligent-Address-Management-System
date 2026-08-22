@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name="customers")
@@ -29,7 +31,22 @@ public class Customer {
     @Column(nullable = false)
     private String phoneNumber;
 
+
+    // mappedBy = customer
+    // it refers to the filed inside address
+    // private Customer customer;
+    @OneToMany(
+            mappedBy = "customer",
+            // This means certain operations on a Customer cascade to its Addresses.
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<Address> addresses = new ArrayList<>();
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 }
+
+// foreign key (customer_id)
+//       references customers (id)
