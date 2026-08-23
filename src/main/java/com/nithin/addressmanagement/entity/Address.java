@@ -29,6 +29,7 @@ public class Address {
     private String houseNumber;
     private String buildingName;
     private String street;
+    private String landmark;
     private String area;
     private String city;
     private String state;
