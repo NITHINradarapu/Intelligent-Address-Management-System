@@ -6,6 +6,7 @@ import com.nithin.addressmanagement.entity.Address;
 import com.nithin.addressmanagement.entity.AddressStatus;
 import com.nithin.addressmanagement.entity.Customer;
 import com.nithin.addressmanagement.exception.CustomerNotFoundException;
+import com.nithin.addressmanagement.processor.AddressPreprocessor;
 import com.nithin.addressmanagement.repository.AddressRepository;
 import com.nithin.addressmanagement.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
@@ -18,10 +19,14 @@ public class AddressService {
 
     private final AddressRepository addressRepository;
     private final CustomerRepository customerRepository;
+    private final AddressPreprocessor addressPreprocessor;
 
-    public AddressService(AddressRepository addressRepository, CustomerRepository customerRepository){
+    public AddressService(AddressRepository addressRepository,
+                          CustomerRepository customerRepository,
+                          AddressPreprocessor addressPreprocessor){
         this.addressRepository = addressRepository;
         this.customerRepository = customerRepository;
+        this.addressPreprocessor = addressPreprocessor;
     }
 
     public AddressResponseDto createAddress(
@@ -35,6 +40,8 @@ public class AddressService {
                                 "Customer not found with id: " + customerId
                         )
                 );
+
+        String cleanedAddress = addressPreprocessor.preprocess(requestDto.getRawAddress());
 
         Address address = new Address();
 
