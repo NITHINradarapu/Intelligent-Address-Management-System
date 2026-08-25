@@ -6,7 +6,9 @@ import com.nithin.addressmanagement.entity.Address;
 import com.nithin.addressmanagement.entity.AddressStatus;
 import com.nithin.addressmanagement.entity.Customer;
 import com.nithin.addressmanagement.exception.CustomerNotFoundException;
+import com.nithin.addressmanagement.processor.AddressParser;
 import com.nithin.addressmanagement.processor.AddressPreprocessor;
+import com.nithin.addressmanagement.processor.ParsedAddress;
 import com.nithin.addressmanagement.repository.AddressRepository;
 import com.nithin.addressmanagement.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
@@ -20,13 +22,16 @@ public class AddressService {
     private final AddressRepository addressRepository;
     private final CustomerRepository customerRepository;
     private final AddressPreprocessor addressPreprocessor;
+    private final AddressParser addressParser;
 
     public AddressService(AddressRepository addressRepository,
                           CustomerRepository customerRepository,
-                          AddressPreprocessor addressPreprocessor){
+                          AddressPreprocessor addressPreprocessor,
+                          AddressParser addressParser){
         this.addressRepository = addressRepository;
         this.customerRepository = customerRepository;
         this.addressPreprocessor = addressPreprocessor;
+        this.addressParser = addressParser;
     }
 
     public AddressResponseDto createAddress(
@@ -43,20 +48,22 @@ public class AddressService {
 
         String cleanedAddress = addressPreprocessor.preprocess(requestDto.getRawAddress());
 
+        ParsedAddress parsedAddress = addressParser.parse(cleanedAddress);
+
         Address address = new Address();
 
         address.setRawAddress(requestDto.getRawAddress());
 
         // Intelligence will populate these fields later
-        address.setHouseNumber(null);
-        address.setBuildingName(null);
-        address.setStreet(null);
-        address.setLandmark(null);
-        address.setArea(null);
-        address.setCity(null);
-        address.setState(null);
-        address.setPostalCode(null);
-        address.setCountry(null);
+        address.setHouseNumber(parsedAddress.getHouseNumber());
+        address.setBuildingName(parsedAddress.getBuildingName());
+        address.setStreet(parsedAddress.getStreet());
+        address.setLandmark(parsedAddress.getLandmark());
+        address.setArea(parsedAddress.getArea());
+        address.setCity(parsedAddress.getCity());
+        address.setState(parsedAddress.getState());
+        address.setPostalCode(parsedAddress.getPostalCode());
+        address.setCountry(parsedAddress.getCountry());
 
         // Initial state
         address.setConfidenceScore(0.0);
