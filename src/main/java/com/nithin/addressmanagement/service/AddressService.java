@@ -8,6 +8,7 @@ import com.nithin.addressmanagement.entity.Customer;
 import com.nithin.addressmanagement.exception.CustomerNotFoundException;
 import com.nithin.addressmanagement.processor.AddressParser;
 import com.nithin.addressmanagement.processor.AddressPreprocessor;
+import com.nithin.addressmanagement.processor.ConfidenceCalculator;
 import com.nithin.addressmanagement.processor.ParsedAddress;
 import com.nithin.addressmanagement.repository.AddressRepository;
 import com.nithin.addressmanagement.repository.CustomerRepository;
@@ -23,15 +24,18 @@ public class AddressService {
     private final CustomerRepository customerRepository;
     private final AddressPreprocessor addressPreprocessor;
     private final AddressParser addressParser;
+    private final ConfidenceCalculator confidenceCalculator;
 
     public AddressService(AddressRepository addressRepository,
                           CustomerRepository customerRepository,
                           AddressPreprocessor addressPreprocessor,
-                          AddressParser addressParser){
+                          AddressParser addressParser,
+                          ConfidenceCalculator confidenceCalculator){
         this.addressRepository = addressRepository;
         this.customerRepository = customerRepository;
         this.addressPreprocessor = addressPreprocessor;
         this.addressParser = addressParser;
+        this.confidenceCalculator = confidenceCalculator;
     }
 
     public AddressResponseDto createAddress(
@@ -50,6 +54,9 @@ public class AddressService {
 
         ParsedAddress parsedAddress = addressParser.parse(cleanedAddress);
 
+        double confidenceScore =
+                confidenceCalculator.calculate(parsedAddress);
+
         Address address = new Address();
 
         address.setRawAddress(requestDto.getRawAddress());
@@ -66,8 +73,18 @@ public class AddressService {
         address.setCountry(parsedAddress.getCountry());
 
         // Initial state
-        address.setConfidenceScore(0.0);
-        address.setStatus(AddressStatus.PENDING);
+//        address.setConfidenceScore(0.0);
+//        address.setStatus(AddressStatus.PENDING);
+
+        address.setConfidenceScore(confidenceScore);
+
+        if (confidenceScore >= 90) {
+            address.setStatus(AddressStatus.APPROVED);
+        } else if (confidenceScore >= 60) {
+            address.setStatus(AddressStatus.REVIEW_REQUIRED);
+        } else {
+            address.setStatus(AddressStatus.REJECTED);
+        }
 
         // connecting address to customer
         address.setCustomer(customer);
