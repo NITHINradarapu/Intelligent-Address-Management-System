@@ -37,6 +37,8 @@ public class AddressParser {
                 locationDictionary.findArea(cleanedAddress)
         );
 
+        extractBuildingName(cleanedAddress, parsedAddress);
+
         return parsedAddress;
     }
 
@@ -84,5 +86,62 @@ public class AddressParser {
         if (address.contains("india")) {
             parsedAddress.setCountry("India");
         }
+    }
+
+    private void extractBuildingName(
+            String address,
+            ParsedAddress parsedAddress
+    ) {
+        String area = locationDictionary.findArea(address);
+
+        if (area == null) {
+            return;
+        }
+
+        String normalizedArea = area.toLowerCase();
+
+        int areaIndex = address.indexOf(normalizedArea);
+
+        if (areaIndex == -1) {
+            return;
+        }
+
+        String beforeArea = address.substring(0, areaIndex).trim();
+
+        String houseNumber = parsedAddress.getHouseNumber();
+
+        if (houseNumber != null) {
+            int houseNumberIndex = beforeArea.indexOf(houseNumber);
+
+            if (houseNumberIndex != -1) {
+                String buildingPart = beforeArea
+                        .substring(houseNumberIndex + houseNumber.length())
+                        .trim();
+
+                if (!buildingPart.isBlank()) {
+                    parsedAddress.setBuildingName(
+                            formatText(buildingPart)
+                    );
+                }
+            }
+        }
+    }
+    private String formatText(String text) {
+
+        String[] words = text.split("\\s+");
+
+        StringBuilder formatted = new StringBuilder();
+
+        for (String word : words) {
+            if (!word.isBlank()) {
+                formatted.append(
+                        Character.toUpperCase(word.charAt(0))
+                );
+                formatted.append(word.substring(1).toLowerCase());
+                formatted.append(" ");
+            }
+        }
+
+        return formatted.toString().trim();
     }
 }
