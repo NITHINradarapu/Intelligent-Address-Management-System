@@ -8,6 +8,12 @@ import java.util.regex.Pattern;
 @Component
 public class AddressParser {
 
+    private final LocationDictionary locationDictionary;
+
+    public AddressParser(LocationDictionary locationDictionary){
+        this.locationDictionary = locationDictionary;
+    }
+
     private static final Pattern HOUSE_NUMBER_PATTERN =
             Pattern.compile("\\b(?:flat|house|plot|door|no)\\s*(?:no\\s*)?(\\d+[a-zA-Z]?)\\b");
 
@@ -22,6 +28,14 @@ public class AddressParser {
         extractPostalCode(cleanedAddress, parsedAddress);
         extractState(cleanedAddress, parsedAddress);
         extractCountry(cleanedAddress, parsedAddress);
+
+        parsedAddress.setCity(
+                locationDictionary.findCity(cleanedAddress)
+        );
+
+        parsedAddress.setArea(
+                locationDictionary.findArea(cleanedAddress)
+        );
 
         return parsedAddress;
     }
