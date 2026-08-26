@@ -6,10 +6,7 @@ import com.nithin.addressmanagement.entity.Address;
 import com.nithin.addressmanagement.entity.AddressStatus;
 import com.nithin.addressmanagement.entity.Customer;
 import com.nithin.addressmanagement.exception.CustomerNotFoundException;
-import com.nithin.addressmanagement.processor.AddressParser;
-import com.nithin.addressmanagement.processor.AddressPreprocessor;
-import com.nithin.addressmanagement.processor.ConfidenceCalculator;
-import com.nithin.addressmanagement.processor.ParsedAddress;
+import com.nithin.addressmanagement.processor.*;
 import com.nithin.addressmanagement.repository.AddressRepository;
 import com.nithin.addressmanagement.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
@@ -25,17 +22,20 @@ public class AddressService {
     private final AddressPreprocessor addressPreprocessor;
     private final AddressParser addressParser;
     private final ConfidenceCalculator confidenceCalculator;
+    private final AddressValidator addressValidator;
 
     public AddressService(AddressRepository addressRepository,
                           CustomerRepository customerRepository,
                           AddressPreprocessor addressPreprocessor,
                           AddressParser addressParser,
-                          ConfidenceCalculator confidenceCalculator){
+                          ConfidenceCalculator confidenceCalculator,
+                          AddressValidator addressValidator){
         this.addressRepository = addressRepository;
         this.customerRepository = customerRepository;
         this.addressPreprocessor = addressPreprocessor;
         this.addressParser = addressParser;
         this.confidenceCalculator = confidenceCalculator;
+        this.addressValidator = addressValidator;
     }
 
     public AddressResponseDto createAddress(
@@ -53,6 +53,8 @@ public class AddressService {
         String cleanedAddress = addressPreprocessor.preprocess(requestDto.getRawAddress());
 
         ParsedAddress parsedAddress = addressParser.parse(cleanedAddress);
+
+        ValidationResult validationResult = addressValidator.validate(parsedAddress);
 
         double confidenceScore =
                 confidenceCalculator.calculate(parsedAddress);
@@ -78,7 +80,10 @@ public class AddressService {
 
         address.setConfidenceScore(confidenceScore);
 
-        if (confidenceScore >= 90) {
+
+        if (!validationResult.isValid()) {
+            address.setStatus(AddressStatus.REJECTED);
+        } else if (confidenceScore >= 90) {
             address.setStatus(AddressStatus.APPROVED);
         } else if (confidenceScore >= 60) {
             address.setStatus(AddressStatus.REVIEW_REQUIRED);
