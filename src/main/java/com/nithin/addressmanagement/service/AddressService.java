@@ -23,19 +23,22 @@ public class AddressService {
     private final AddressParser addressParser;
     private final ConfidenceCalculator confidenceCalculator;
     private final AddressValidator addressValidator;
+    private final AddressDecisionEngine addressDecisionEngine;
 
     public AddressService(AddressRepository addressRepository,
                           CustomerRepository customerRepository,
                           AddressPreprocessor addressPreprocessor,
                           AddressParser addressParser,
                           ConfidenceCalculator confidenceCalculator,
-                          AddressValidator addressValidator){
+                          AddressValidator addressValidator,
+                          AddressDecisionEngine addressDecisionEngine){
         this.addressRepository = addressRepository;
         this.customerRepository = customerRepository;
         this.addressPreprocessor = addressPreprocessor;
         this.addressParser = addressParser;
         this.confidenceCalculator = confidenceCalculator;
         this.addressValidator = addressValidator;
+        this.addressDecisionEngine = addressDecisionEngine;
     }
 
     public AddressResponseDto createAddress(
@@ -59,6 +62,12 @@ public class AddressService {
         double confidenceScore =
                 confidenceCalculator.calculate(parsedAddress);
 
+        DecisionResult decisionResult =
+                addressDecisionEngine.decide(
+                        validationResult,
+                        confidenceScore
+                );
+
         Address address = new Address();
 
         address.setRawAddress(requestDto.getRawAddress());
@@ -81,32 +90,13 @@ public class AddressService {
         address.setConfidenceScore(confidenceScore);
 
 
-        if (!validationResult.isValid()) {
+        address.setConfidenceScore(confidenceScore);
 
-            address.setStatus(AddressStatus.REJECTED);
-            address.setProcessingMessage(validationResult.getMessage());
+        address.setStatus(decisionResult.getStatus());
 
-        } else if (confidenceScore >= 90) {
-
-            address.setStatus(AddressStatus.APPROVED);
-            address.setProcessingMessage(
-                    "Address successfully parsed and validated"
-            );
-
-        } else if (confidenceScore >= 60) {
-
-            address.setStatus(AddressStatus.REVIEW_REQUIRED);
-            address.setProcessingMessage(
-                    "Address requires manual review due to incomplete information"
-            );
-
-        } else {
-
-            address.setStatus(AddressStatus.REJECTED);
-            address.setProcessingMessage(
-                    "Address could not be processed with sufficient confidence"
-            );
-        }
+        address.setProcessingMessage(
+                decisionResult.getMessage()
+        );
 
         // connecting address to customer
         address.setCustomer(customer);
