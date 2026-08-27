@@ -36,7 +36,7 @@ public class Address {
     private String postalCode;
     private String country;
     private Double confidenceScore;
-
+    private String processingMessage;
     @Enumerated(EnumType.STRING)
     // Without careful configuration, enums can be stored as numbers:
     // EnumType.STRING stores readable values in the database.

@@ -26,6 +26,8 @@ public class AddressResponseDto {
 
     private Double confidenceScore;
 
+    private String processingMessage;
+
     private AddressStatus status;
     // Here we are returning only customer ID
     // remember that

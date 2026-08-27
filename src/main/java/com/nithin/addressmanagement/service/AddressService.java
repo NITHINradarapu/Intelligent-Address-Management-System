@@ -82,13 +82,30 @@ public class AddressService {
 
 
         if (!validationResult.isValid()) {
+
             address.setStatus(AddressStatus.REJECTED);
+            address.setProcessingMessage(validationResult.getMessage());
+
         } else if (confidenceScore >= 90) {
+
             address.setStatus(AddressStatus.APPROVED);
+            address.setProcessingMessage(
+                    "Address successfully parsed and validated"
+            );
+
         } else if (confidenceScore >= 60) {
+
             address.setStatus(AddressStatus.REVIEW_REQUIRED);
+            address.setProcessingMessage(
+                    "Address requires manual review due to incomplete information"
+            );
+
         } else {
+
             address.setStatus(AddressStatus.REJECTED);
+            address.setProcessingMessage(
+                    "Address could not be processed with sufficient confidence"
+            );
         }
 
         // connecting address to customer
@@ -135,6 +152,7 @@ public class AddressService {
                 address.getPostalCode(),
                 address.getCountry(),
                 address.getConfidenceScore(),
+                address.getProcessingMessage(),
                 address.getStatus(),
                 address.getCustomer().getId(),
                 address.getCreatedAt(),
