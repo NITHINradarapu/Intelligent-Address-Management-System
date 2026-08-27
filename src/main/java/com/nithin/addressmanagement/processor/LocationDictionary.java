@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class LocationDictionary {
+public class LocationDictionary implements LocationLookUp{
 
     private static final List<String> CITIES = List.of(
             "hyderabad",

@@ -8,10 +8,10 @@ import java.util.regex.Pattern;
 @Component
 public class AddressParser {
 
-    private final LocationDictionary locationDictionary;
+    private final LocationLookUp locationLookUp;
 
-    public AddressParser(LocationDictionary locationDictionary){
-        this.locationDictionary = locationDictionary;
+    public AddressParser(LocationLookUp locationLookUp){
+        this.locationLookUp = locationLookUp;
     }
 
     private static final Pattern HOUSE_NUMBER_PATTERN =
@@ -30,11 +30,11 @@ public class AddressParser {
         extractCountry(cleanedAddress, parsedAddress);
 
         parsedAddress.setCity(
-                locationDictionary.findCity(cleanedAddress)
+                locationLookUp.findCity(cleanedAddress)
         );
 
         parsedAddress.setArea(
-                locationDictionary.findArea(cleanedAddress)
+                locationLookUp.findArea(cleanedAddress)
         );
 
         extractBuildingName(cleanedAddress, parsedAddress);
@@ -92,7 +92,7 @@ public class AddressParser {
             String address,
             ParsedAddress parsedAddress
     ) {
-        String area = locationDictionary.findArea(address);
+        String area = locationLookUp.findArea(address);
 
         if (area == null) {
             return;
