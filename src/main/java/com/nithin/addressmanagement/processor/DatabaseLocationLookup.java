@@ -5,6 +5,7 @@ import com.nithin.addressmanagement.entity.LocationType;
 import com.nithin.addressmanagement.repository.LocationRepository;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class DatabaseLocationLookup implements LocationLookUp {
     ) {
 
         List<Location> locations =
-                locationRepository.findByType(type);
+                getLocations(type);
 
         for (Location location : locations) {
 
@@ -65,5 +66,11 @@ public class DatabaseLocationLookup implements LocationLookUp {
         }
 
         return null;
+    }
+
+    @Cacheable("locations")
+    public List<Location> getLocations(LocationType type) {
+
+        return locationRepository.findByType(type);
     }
 }
