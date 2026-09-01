@@ -40,10 +40,27 @@ public class DatabaseLocationLookup implements LocationLookUp {
 
         for (Location location : locations) {
 
-            if (address.contains(
-                    location.getName().toLowerCase()
-            )) {
+            String locationName =
+                    location.getName().toLowerCase();
+
+            if (address.contains(locationName)) {
                 return location.getName();
+            }
+
+            if (location.getAliases() != null) {
+
+                String[] aliases =
+                        location.getAliases().split(",");
+
+                for (String alias : aliases) {
+
+                    String normalizedAlias =
+                            alias.trim().toLowerCase();
+
+                    if (address.contains(normalizedAlias)) {
+                        return location.getName();
+                    }
+                }
             }
         }
 

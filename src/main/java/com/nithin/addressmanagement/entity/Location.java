@@ -20,6 +20,9 @@ public class Location {
 
     private String name;
 
+    @Column
+    private String aliases;
+
     @Enumerated(EnumType.STRING)
     private LocationType type;
 }
