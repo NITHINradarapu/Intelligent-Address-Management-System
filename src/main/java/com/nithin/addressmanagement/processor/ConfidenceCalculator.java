@@ -17,6 +17,10 @@ public class ConfidenceCalculator {
             score += 15;
         }
 
+        if (address.getStreet() != null) {
+            score += 10;
+        }
+
         if (address.getArea() != null) {
             score += 15;
         }
@@ -37,6 +41,6 @@ public class ConfidenceCalculator {
             score += 10;
         }
 
-        return score;
+        return Math.min(score, 100.0);
     }
 }

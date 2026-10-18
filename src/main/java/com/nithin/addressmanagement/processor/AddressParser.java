@@ -20,6 +20,12 @@ public class AddressParser {
     private static final Pattern POSTAL_CODE_PATTERN =
             Pattern.compile("\\b\\d{6}\\b");
 
+    private static final Pattern NUMBERED_STREET_PATTERN =
+            Pattern.compile("\\b(?:road|street|lane)\\s*(?:no\\s*|number\\s*)?\\d+[a-zA-Z]?\\b", Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern NAMED_STREET_PATTERN =
+            Pattern.compile("\\b(?!(?:flat|house|plot|door|residency|apartments?|heights?|villa|enclave|nilayam)\\b)(?:(?:\\d+\\s+feet|[a-zA-Z]+|\\d+(?:st|nd|rd|th))\\s+)?(?:[a-zA-Z]+|\\d+(?:st|nd|rd|th))\\s+(?:road|street|lane|avenue|marg)\\b", Pattern.CASE_INSENSITIVE);
+
     public ParsedAddress parse(String cleanedAddress) {
 
         ParsedAddress parsedAddress = new ParsedAddress();
@@ -37,6 +43,7 @@ public class AddressParser {
                 locationLookUp.findArea(cleanedAddress)
         );
 
+        extractStreet(cleanedAddress, parsedAddress);
         extractBuildingName(cleanedAddress, parsedAddress);
 
         return parsedAddress;
@@ -88,6 +95,22 @@ public class AddressParser {
         }
     }
 
+    private void extractStreet(
+            String address,
+            ParsedAddress parsedAddress
+    ) {
+        Matcher numberedMatcher = NUMBERED_STREET_PATTERN.matcher(address);
+        if (numberedMatcher.find()) {
+            parsedAddress.setStreet(formatText(numberedMatcher.group()));
+            return;
+        }
+
+        Matcher namedMatcher = NAMED_STREET_PATTERN.matcher(address);
+        if (namedMatcher.find()) {
+            parsedAddress.setStreet(formatText(namedMatcher.group()));
+        }
+    }
+
     private void extractBuildingName(
             String address,
             ParsedAddress parsedAddress
@@ -117,6 +140,13 @@ public class AddressParser {
                 String buildingPart = beforeArea
                         .substring(houseNumberIndex + houseNumber.length())
                         .trim();
+
+                if (parsedAddress.getStreet() != null) {
+                    buildingPart = buildingPart
+                            .toLowerCase()
+                            .replace(parsedAddress.getStreet().toLowerCase(), "")
+                            .trim();
+                }
 
                 if (!buildingPart.isBlank()) {
                     parsedAddress.setBuildingName(
