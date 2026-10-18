@@ -1,5 +1,6 @@
 package com.nithin.addressmanagement.processor;
 
+import com.nithin.addressmanagement.repository.PostalCodeRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -11,9 +12,14 @@ import java.util.regex.Pattern;
 public class AddressParser {
 
     private final LocationLookUp locationLookUp;
+    private final PostalCodeRepository postalCodeRepository;
 
-    public AddressParser(LocationLookUp locationLookUp){
+    public AddressParser(
+            LocationLookUp locationLookUp,
+            PostalCodeRepository postalCodeRepository
+    ){
         this.locationLookUp = locationLookUp;
+        this.postalCodeRepository = postalCodeRepository;
     }
 
     private static final Pattern HOUSE_NUMBER_PATTERN =
@@ -23,7 +29,7 @@ public class AddressParser {
             Pattern.compile("\\b\\d{6}\\b");
 
     private static final Pattern NUMBERED_STREET_PATTERN =
-            Pattern.compile("\\b(?:road|street|lane)\\s*(?:no\\s*|number\\s*)?\\d+[a-zA-Z]?\\b", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("\\b(?:road|street|lane)\\s*(?:no\\s*|number\\s*)?\\d{1,4}[a-zA-Z]?\\b", Pattern.CASE_INSENSITIVE);
 
     private static final Pattern NAMED_STREET_PATTERN =
             Pattern.compile("\\b(?!(?:flat|house|plot|door|residency|apartments?|heights?|villa|enclave|nilayam|near|opposite|opp|behind|beside|next)\\b)(?:100\\s+feet|[a-zA-Z]+|\\d+(?:st|nd|rd|th))\\s+(?:road|street|lane|avenue|marg)\\b", Pattern.CASE_INSENSITIVE);
@@ -47,6 +53,8 @@ public class AddressParser {
         parsedAddress.setArea(
                 locationLookUp.findArea(cleanedAddress)
         );
+
+        enrichFromPostalCode(parsedAddress);
 
         extractStreet(cleanedAddress, parsedAddress);
         extractLandmark(cleanedAddress, parsedAddress);
@@ -99,6 +107,28 @@ public class AddressParser {
         if (address.contains("india")) {
             parsedAddress.setCountry("India");
         }
+    }
+
+    private void enrichFromPostalCode(ParsedAddress parsedAddress) {
+        if (parsedAddress.getPostalCode() == null) {
+            return;
+        }
+
+        postalCodeRepository.findByCode(parsedAddress.getPostalCode())
+                .ifPresent(reference -> {
+                    if (parsedAddress.getCity() == null && reference.getCity() != null) {
+                        parsedAddress.setCity(reference.getCity());
+                    }
+                    if (parsedAddress.getState() == null && reference.getState() != null) {
+                        parsedAddress.setState(reference.getState());
+                    }
+                    if (parsedAddress.getArea() == null && reference.getArea() != null) {
+                        parsedAddress.setArea(reference.getArea());
+                    }
+                    if (parsedAddress.getCountry() == null && reference.getCountry() != null) {
+                        parsedAddress.setCountry(reference.getCountry());
+                    }
+                });
     }
 
     private void extractStreet(
@@ -160,29 +190,29 @@ public class AddressParser {
             String address,
             ParsedAddress parsedAddress
     ) {
-        String area = locationLookUp.findArea(address);
+        int boundaryIndex = -1;
 
-        if (area == null) {
+        if (parsedAddress.getArea() != null && address.contains(parsedAddress.getArea().toLowerCase())) {
+            boundaryIndex = address.indexOf(parsedAddress.getArea().toLowerCase());
+        } else if (parsedAddress.getLandmark() != null && address.contains(parsedAddress.getLandmark().toLowerCase())) {
+            boundaryIndex = address.indexOf(parsedAddress.getLandmark().toLowerCase());
+        } else if (parsedAddress.getStreet() != null && address.contains(parsedAddress.getStreet().toLowerCase())) {
+            boundaryIndex = address.indexOf(parsedAddress.getStreet().toLowerCase());
+        }
+
+        if (boundaryIndex == -1) {
             return;
         }
 
-        String normalizedArea = area.toLowerCase();
-
-        int areaIndex = address.indexOf(normalizedArea);
-
-        if (areaIndex == -1) {
-            return;
-        }
-
-        String beforeArea = address.substring(0, areaIndex).trim();
+        String beforeBoundary = address.substring(0, boundaryIndex).trim();
 
         String houseNumber = parsedAddress.getHouseNumber();
 
         if (houseNumber != null) {
-            int houseNumberIndex = beforeArea.indexOf(houseNumber);
+            int houseNumberIndex = beforeBoundary.indexOf(houseNumber);
 
             if (houseNumberIndex != -1) {
-                String buildingPart = beforeArea
+                String buildingPart = beforeBoundary
                         .substring(houseNumberIndex + houseNumber.length())
                         .trim();
 
