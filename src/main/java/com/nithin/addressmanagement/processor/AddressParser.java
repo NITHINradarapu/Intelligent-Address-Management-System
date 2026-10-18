@@ -2,6 +2,8 @@ package com.nithin.addressmanagement.processor;
 
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,7 +26,10 @@ public class AddressParser {
             Pattern.compile("\\b(?:road|street|lane)\\s*(?:no\\s*|number\\s*)?\\d+[a-zA-Z]?\\b", Pattern.CASE_INSENSITIVE);
 
     private static final Pattern NAMED_STREET_PATTERN =
-            Pattern.compile("\\b(?!(?:flat|house|plot|door|residency|apartments?|heights?|villa|enclave|nilayam)\\b)(?:(?:\\d+\\s+feet|[a-zA-Z]+|\\d+(?:st|nd|rd|th))\\s+)?(?:[a-zA-Z]+|\\d+(?:st|nd|rd|th))\\s+(?:road|street|lane|avenue|marg)\\b", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("\\b(?!(?:flat|house|plot|door|residency|apartments?|heights?|villa|enclave|nilayam|near|opposite|opp|behind|beside|next)\\b)(?:100\\s+feet|[a-zA-Z]+|\\d+(?:st|nd|rd|th))\\s+(?:road|street|lane|avenue|marg)\\b", Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern LANDMARK_CUE_PATTERN =
+            Pattern.compile("\\b(near|opposite|opp(?:\\s+to)?|behind|beside|next\\s+to|adjacent\\s+to|close\\s+to)\\s+", Pattern.CASE_INSENSITIVE);
 
     public ParsedAddress parse(String cleanedAddress) {
 
@@ -44,6 +49,7 @@ public class AddressParser {
         );
 
         extractStreet(cleanedAddress, parsedAddress);
+        extractLandmark(cleanedAddress, parsedAddress);
         extractBuildingName(cleanedAddress, parsedAddress);
 
         return parsedAddress;
@@ -111,6 +117,45 @@ public class AddressParser {
         }
     }
 
+    private void extractLandmark(
+            String address,
+            ParsedAddress parsedAddress
+    ) {
+        Matcher matcher = LANDMARK_CUE_PATTERN.matcher(address);
+        if (!matcher.find()) {
+            return;
+        }
+
+        int startIdx = matcher.start();
+        int endIdx = address.length();
+
+        List<String> boundaries = new ArrayList<>();
+        if (parsedAddress.getStreet() != null) {
+            boundaries.add(parsedAddress.getStreet().toLowerCase());
+        }
+        if (parsedAddress.getArea() != null) {
+            boundaries.add(parsedAddress.getArea().toLowerCase());
+        }
+        if (parsedAddress.getCity() != null) {
+            boundaries.add(parsedAddress.getCity().toLowerCase());
+        }
+        if (parsedAddress.getPostalCode() != null) {
+            boundaries.add(parsedAddress.getPostalCode());
+        }
+
+        for (String boundary : boundaries) {
+            int idx = address.toLowerCase().indexOf(boundary, matcher.end());
+            if (idx != -1 && idx < endIdx) {
+                endIdx = idx;
+            }
+        }
+
+        String rawLandmark = address.substring(startIdx, endIdx).trim();
+        if (!rawLandmark.isBlank()) {
+            parsedAddress.setLandmark(formatText(rawLandmark));
+        }
+    }
+
     private void extractBuildingName(
             String address,
             ParsedAddress parsedAddress
@@ -145,6 +190,13 @@ public class AddressParser {
                     buildingPart = buildingPart
                             .toLowerCase()
                             .replace(parsedAddress.getStreet().toLowerCase(), "")
+                            .trim();
+                }
+
+                if (parsedAddress.getLandmark() != null) {
+                    buildingPart = buildingPart
+                            .toLowerCase()
+                            .replace(parsedAddress.getLandmark().toLowerCase(), "")
                             .trim();
                 }
 

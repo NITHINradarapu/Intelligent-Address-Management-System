@@ -11,7 +11,9 @@ public class AddressPreprocessor {
             "ts", "telangana",
             "ap", "andhra pradesh",
             "st", "street",
-            "rd", "road"
+            "rd", "road",
+            "opp", "opposite",
+            "nr", "near"
     );
 
     public String preprocess(String rawAddress) {

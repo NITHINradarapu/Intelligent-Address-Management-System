@@ -21,6 +21,10 @@ public class ConfidenceCalculator {
             score += 10;
         }
 
+        if (address.getLandmark() != null) {
+            score += 10;
+        }
+
         if (address.getArea() != null) {
             score += 15;
         }
