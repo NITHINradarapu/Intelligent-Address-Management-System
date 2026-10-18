@@ -47,4 +47,22 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT
         );
     }
+
+    @ExceptionHandler(DuplicateAddressException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateAddressException(
+            DuplicateAddressException exception
+    ) {
+
+        Map<String, Object> errorResponse = new HashMap<>();
+
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("status", HttpStatus.CONFLICT.value());
+        errorResponse.put("error", "Duplicate address");
+        errorResponse.put("message", exception.getMessage());
+
+        return new ResponseEntity<>(
+                errorResponse,
+                HttpStatus.CONFLICT
+        );
+    }
 }

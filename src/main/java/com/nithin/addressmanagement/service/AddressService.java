@@ -6,6 +6,7 @@ import com.nithin.addressmanagement.entity.Address;
 import com.nithin.addressmanagement.entity.AddressStatus;
 import com.nithin.addressmanagement.entity.Customer;
 import com.nithin.addressmanagement.exception.CustomerNotFoundException;
+import com.nithin.addressmanagement.exception.DuplicateAddressException;
 import com.nithin.addressmanagement.processor.*;
 import com.nithin.addressmanagement.repository.AddressRepository;
 import com.nithin.addressmanagement.repository.CustomerRepository;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class AddressService {
@@ -25,6 +27,7 @@ public class AddressService {
     private final AddressValidator addressValidator;
     private final AddressDecisionEngine addressDecisionEngine;
     private final AddressNormalizer addressNormalizer;
+    private final DuplicateAddressDetector duplicateAddressDetector;
 
     public AddressService(AddressRepository addressRepository,
                           CustomerRepository customerRepository,
@@ -33,7 +36,8 @@ public class AddressService {
                           ConfidenceCalculator confidenceCalculator,
                           AddressValidator addressValidator,
                           AddressDecisionEngine addressDecisionEngine,
-                          AddressNormalizer addressNormalizer){
+                          AddressNormalizer addressNormalizer,
+                          DuplicateAddressDetector duplicateAddressDetector){
         this.addressRepository = addressRepository;
         this.customerRepository = customerRepository;
         this.addressPreprocessor = addressPreprocessor;
@@ -42,6 +46,7 @@ public class AddressService {
         this.addressValidator = addressValidator;
         this.addressDecisionEngine = addressDecisionEngine;
         this.addressNormalizer = addressNormalizer;
+        this.duplicateAddressDetector = duplicateAddressDetector;
     }
 
     public AddressResponseDto createAddress(
@@ -71,11 +76,24 @@ public class AddressService {
                         confidenceScore
                 );
 
+        String formattedAddress = addressNormalizer.normalize(parsedAddress);
+
+        List<Address> existingAddresses = addressRepository.findByCustomerId(customerId);
+        Optional<Address> duplicate = duplicateAddressDetector.findDuplicate(
+                existingAddresses,
+                parsedAddress,
+                formattedAddress
+        );
+
+        if (duplicate.isPresent()) {
+            throw new DuplicateAddressException(
+                    "Address already exists for this customer with id: " + duplicate.get().getId()
+            );
+        }
+
         Address address = new Address();
 
         address.setRawAddress(requestDto.getRawAddress());
-
-        String formattedAddress = addressNormalizer.normalize(parsedAddress);
         address.setFormattedAddress(formattedAddress);
 
         // Intelligence will populate these fields later
