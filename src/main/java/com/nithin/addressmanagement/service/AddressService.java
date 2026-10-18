@@ -24,6 +24,7 @@ public class AddressService {
     private final ConfidenceCalculator confidenceCalculator;
     private final AddressValidator addressValidator;
     private final AddressDecisionEngine addressDecisionEngine;
+    private final AddressNormalizer addressNormalizer;
 
     public AddressService(AddressRepository addressRepository,
                           CustomerRepository customerRepository,
@@ -31,7 +32,8 @@ public class AddressService {
                           AddressParser addressParser,
                           ConfidenceCalculator confidenceCalculator,
                           AddressValidator addressValidator,
-                          AddressDecisionEngine addressDecisionEngine){
+                          AddressDecisionEngine addressDecisionEngine,
+                          AddressNormalizer addressNormalizer){
         this.addressRepository = addressRepository;
         this.customerRepository = customerRepository;
         this.addressPreprocessor = addressPreprocessor;
@@ -39,6 +41,7 @@ public class AddressService {
         this.confidenceCalculator = confidenceCalculator;
         this.addressValidator = addressValidator;
         this.addressDecisionEngine = addressDecisionEngine;
+        this.addressNormalizer = addressNormalizer;
     }
 
     public AddressResponseDto createAddress(
@@ -71,6 +74,9 @@ public class AddressService {
         Address address = new Address();
 
         address.setRawAddress(requestDto.getRawAddress());
+
+        String formattedAddress = addressNormalizer.normalize(parsedAddress);
+        address.setFormattedAddress(formattedAddress);
 
         // Intelligence will populate these fields later
         address.setHouseNumber(parsedAddress.getHouseNumber());
@@ -129,6 +135,7 @@ public class AddressService {
         return new AddressResponseDto(
                 address.getId(),
                 address.getRawAddress(),
+                address.getFormattedAddress(),
                 address.getHouseNumber(),
                 address.getBuildingName(),
                 address.getStreet(),

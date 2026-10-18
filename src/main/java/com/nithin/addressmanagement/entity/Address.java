@@ -26,6 +26,8 @@ public class Address {
     // Addresses can potentially be long:
     // tells MySQL to use a TEXT column.
     private String rawAddress;
+    @Column(columnDefinition = "TEXT")
+    private String formattedAddress;
     private String houseNumber;
     private String buildingName;
     private String street;

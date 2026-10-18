@@ -13,6 +13,7 @@ public class AddressResponseDto {
     private Long id;
 
     private String rawAddress;
+    private String formattedAddress;
 
     private String houseNumber;
     private String buildingName;
