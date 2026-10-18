@@ -89,9 +89,6 @@ public class AddressService {
 
         address.setConfidenceScore(confidenceScore);
 
-
-        address.setConfidenceScore(confidenceScore);
-
         address.setStatus(decisionResult.getStatus());
 
         address.setProcessingMessage(
