@@ -7,111 +7,162 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Address Management System</h1>
 
-    <!-- Navigation tabs -->
-    <div class="tabs">
-        <button class="tab active" onclick="showSection('customers')">Customers</button>
-        <button class="tab" onclick="showSection('addresses')">Addresses</button>
-    </div>
+    <!-- ==================== AUTH SECTION (shown when NOT logged in) ==================== -->
+    <div id="auth-section">
+        <h1>Address Management System</h1>
 
-    <!-- ==================== CUSTOMERS SECTION ==================== -->
-    <div id="customers-section" class="section">
-        <h2>Create Customer</h2>
-        <form id="customer-form">
-            <label>Name
-                <input type="text" id="cust-name" required>
-            </label>
-            <label>Email
-                <input type="email" id="cust-email" required>
-            </label>
-            <label>Phone (10 digits)
-                <input type="text" id="cust-phone" pattern="[0-9]{10}" required>
-            </label>
-            <button type="submit">Create Customer</button>
-        </form>
+        <div class="tabs">
+            <button class="tab active" onclick="showAuthTab('login')">Login</button>
+            <button class="tab" onclick="showAuthTab('register')">Register</button>
+        </div>
 
-        <!-- Edit Customer (hidden by default) -->
-        <div id="edit-customer-section" style="display:none;">
-            <h2>Edit Customer</h2>
-            <form id="edit-customer-form">
-                <input type="hidden" id="edit-cust-id">
-                <label>Name
-                    <input type="text" id="edit-cust-name" required>
+        <!-- Login Form -->
+        <div id="login-tab">
+            <form id="login-form">
+                <label>Username
+                    <input type="text" id="login-username" required>
                 </label>
-                <label>Email
-                    <input type="email" id="edit-cust-email" required>
+                <label>Password
+                    <input type="password" id="login-password" required>
                 </label>
-                <label>Phone (10 digits)
-                    <input type="text" id="edit-cust-phone" pattern="[0-9]{10}" required>
-                </label>
-                <div class="button-group">
-                    <button type="submit">Update</button>
-                    <button type="button" onclick="cancelEdit()">Cancel</button>
-                </div>
+                <button type="submit">Login</button>
             </form>
         </div>
 
-        <h2>All Customers</h2>
-        <button onclick="loadCustomers()">Refresh</button>
-        <table id="customers-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <!-- Register Form -->
+        <div id="register-tab" style="display:none;">
+            <form id="register-form">
+                <label>Username
+                    <input type="text" id="reg-username" required minlength="3">
+                </label>
+                <label>Email
+                    <input type="email" id="reg-email" required>
+                </label>
+                <label>Password (min 6 chars)
+                    <input type="password" id="reg-password" required minlength="6">
+                </label>
+                <button type="submit">Register</button>
+            </form>
+        </div>
     </div>
 
-    <!-- ==================== ADDRESSES SECTION ==================== -->
-    <div id="addresses-section" class="section" style="display:none;">
-        <h2>Add Address</h2>
-        <form id="address-form">
-            <label>Customer ID
-                <input type="number" id="addr-customer-id" required>
-            </label>
-            <label>Raw Address
-                <textarea id="addr-raw" rows="3" required placeholder="e.g. Flat 101, Prestige Towers, MG Road, Bangalore 560001"></textarea>
-            </label>
-            <button type="submit">Submit Address</button>
-        </form>
+    <!-- ==================== APP SECTION (shown when logged in) ==================== -->
+    <div id="app-section" style="display:none;">
 
-        <h2>View Addresses</h2>
-        <div class="inline-form">
-            <label>Customer ID
-                <input type="number" id="lookup-customer-id">
-            </label>
-            <button onclick="loadAddresses()">Load Addresses</button>
+        <!-- Top bar -->
+        <div class="top-bar">
+            <h1>Address Management System</h1>
+            <div class="user-info">
+                <span id="user-display"></span>
+                <button onclick="logout()">Logout</button>
+            </div>
         </div>
 
-        <table id="addresses-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Raw Address</th>
-                    <th>Formatted Address</th>
-                    <th>City</th>
-                    <th>State</th>
-                    <th>Postal Code</th>
-                    <th>Confidence</th>
-                    <th>Status</th>
-                    <th>Message</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <!-- Navigation tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="showSection('customers')">Customers</button>
+            <button class="tab" onclick="showSection('addresses')">Addresses</button>
+        </div>
 
-        <!-- Address detail card (shown when a row is clicked) -->
-        <div id="address-detail" style="display:none;">
-            <h3>Address Details</h3>
-            <div id="address-detail-content"></div>
-            <button onclick="document.getElementById('address-detail').style.display='none'">Close</button>
+        <!-- ==================== CUSTOMERS SECTION ==================== -->
+        <div id="customers-section" class="section">
+            <h2>Create Customer</h2>
+            <form id="customer-form">
+                <label>Name
+                    <input type="text" id="cust-name" required>
+                </label>
+                <label>Email
+                    <input type="email" id="cust-email" required>
+                </label>
+                <label>Phone (10 digits)
+                    <input type="text" id="cust-phone" pattern="[0-9]{10}" required>
+                </label>
+                <button type="submit">Create Customer</button>
+            </form>
+
+            <!-- Edit Customer (hidden by default) -->
+            <div id="edit-customer-section" style="display:none;">
+                <h2>Edit Customer</h2>
+                <form id="edit-customer-form">
+                    <input type="hidden" id="edit-cust-id">
+                    <label>Name
+                        <input type="text" id="edit-cust-name" required>
+                    </label>
+                    <label>Email
+                        <input type="email" id="edit-cust-email" required>
+                    </label>
+                    <label>Phone (10 digits)
+                        <input type="text" id="edit-cust-phone" pattern="[0-9]{10}" required>
+                    </label>
+                    <div class="button-group">
+                        <button type="submit">Update</button>
+                        <button type="button" onclick="cancelEdit()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <h2>All Customers</h2>
+            <button onclick="loadCustomers()">Refresh</button>
+            <table id="customers-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- ==================== ADDRESSES SECTION ==================== -->
+        <div id="addresses-section" class="section" style="display:none;">
+            <h2>Add Address</h2>
+            <form id="address-form">
+                <label>Customer ID
+                    <input type="number" id="addr-customer-id" required>
+                </label>
+                <label>Raw Address
+                    <textarea id="addr-raw" rows="3" required placeholder="e.g. Flat 101, Prestige Towers, MG Road, Bangalore 560001"></textarea>
+                </label>
+                <button type="submit">Submit Address</button>
+            </form>
+
+            <h2>View Addresses</h2>
+            <div class="inline-form">
+                <label>Customer ID
+                    <input type="number" id="lookup-customer-id">
+                </label>
+                <button onclick="loadAddresses()">Load Addresses</button>
+            </div>
+
+            <table id="addresses-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Raw Address</th>
+                        <th>Formatted Address</th>
+                        <th>City</th>
+                        <th>State</th>
+                        <th>Postal Code</th>
+                        <th>Confidence</th>
+                        <th>Status</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <!-- Address detail card -->
+            <div id="address-detail" style="display:none;">
+                <h3>Address Details</h3>
+                <div id="address-detail-content"></div>
+                <button onclick="document.getElementById('address-detail').style.display='none'">Close</button>
+            </div>
         </div>
     </div>
 
@@ -121,4 +172,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
