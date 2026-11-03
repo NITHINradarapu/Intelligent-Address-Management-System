@@ -96,7 +96,7 @@ public class AddressService {
         address.setRawAddress(requestDto.getRawAddress());
         address.setFormattedAddress(formattedAddress);
 
-        // Intelligence will populate these fields later
+        // Populate parsed fields
         address.setHouseNumber(parsedAddress.getHouseNumber());
         address.setBuildingName(parsedAddress.getBuildingName());
         address.setStreet(parsedAddress.getStreet());
@@ -107,19 +107,17 @@ public class AddressService {
         address.setPostalCode(parsedAddress.getPostalCode());
         address.setCountry(parsedAddress.getCountry());
 
-        // Initial state
-//        address.setConfidenceScore(0.0);
-//        address.setStatus(AddressStatus.PENDING);
-
         address.setConfidenceScore(confidenceScore);
-
         address.setStatus(decisionResult.getStatus());
 
-        address.setProcessingMessage(
-                decisionResult.getMessage()
-        );
+        // Append auto-corrections to processing message for transparency
+        String processingMessage = decisionResult.getMessage();
+        if (!parsedAddress.getAutoCorrections().isEmpty()) {
+            processingMessage += " | Auto-corrected: " + String.join(", ", parsedAddress.getAutoCorrections());
+        }
+        address.setProcessingMessage(processingMessage);
 
-        // connecting address to customer
+        // Connect address to customer
         address.setCustomer(customer);
 
         address.setCreatedAt(LocalDateTime.now());

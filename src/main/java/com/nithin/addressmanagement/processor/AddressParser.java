@@ -13,13 +13,49 @@ public class AddressParser {
 
     private final LocationLookUp locationLookUp;
     private final PostalCodeRepository postalCodeRepository;
+    private final FuzzyMatcher fuzzyMatcher;
+
+    private static final List<String> INDIAN_STATES = List.of(
+            "telangana",
+            "andhra pradesh",
+            "karnataka",
+            "maharashtra",
+            "tamil nadu",
+            "kerala",
+            "delhi",
+            "gujarat",
+            "rajasthan",
+            "uttar pradesh",
+            "west bengal",
+            "madhya pradesh",
+            "punjab",
+            "haryana",
+            "bihar",
+            "odisha",
+            "goa",
+            "assam"
+    );
+
+    private static final List<String> COUNTRIES = List.of(
+            "india",
+            "bharat"
+    );
+
+    public AddressParser(
+            LocationLookUp locationLookUp,
+            PostalCodeRepository postalCodeRepository,
+            FuzzyMatcher fuzzyMatcher
+    ) {
+        this.locationLookUp = locationLookUp;
+        this.postalCodeRepository = postalCodeRepository;
+        this.fuzzyMatcher = fuzzyMatcher;
+    }
 
     public AddressParser(
             LocationLookUp locationLookUp,
             PostalCodeRepository postalCodeRepository
-    ){
-        this.locationLookUp = locationLookUp;
-        this.postalCodeRepository = postalCodeRepository;
+    ) {
+        this(locationLookUp, postalCodeRepository, new FuzzyMatcher());
     }
 
     private static final Pattern HOUSE_NUMBER_PATTERN =
@@ -40,25 +76,46 @@ public class AddressParser {
     public ParsedAddress parse(String cleanedAddress) {
 
         ParsedAddress parsedAddress = new ParsedAddress();
+        String workingAddress = cleanedAddress;
 
-        extractHouseNumber(cleanedAddress, parsedAddress);
-        extractPostalCode(cleanedAddress, parsedAddress);
-        extractState(cleanedAddress, parsedAddress);
-        extractCountry(cleanedAddress, parsedAddress);
+        extractHouseNumber(workingAddress, parsedAddress);
+        extractPostalCode(workingAddress, parsedAddress);
 
-        parsedAddress.setCity(
-                locationLookUp.findCity(cleanedAddress)
-        );
+        // 1. City extraction with Fuzzy Matching
+        var cityMatchOpt = locationLookUp.findCityMatch(workingAddress);
+        if (cityMatchOpt.isPresent()) {
+            FuzzyMatchResult cityMatch = cityMatchOpt.get();
+            parsedAddress.setCity(cityMatch.getCanonicalName());
+            if (!cityMatch.isExact()) {
+                parsedAddress.addAutoCorrection(cityMatch.getCorrectionSummary());
+                workingAddress = workingAddress.replace(cityMatch.getMatchedText().toLowerCase(), cityMatch.getCanonicalName().toLowerCase());
+            }
+        }
 
-        parsedAddress.setArea(
-                locationLookUp.findArea(cleanedAddress)
-        );
+        // 2. Area extraction with Fuzzy Matching
+        var areaMatchOpt = locationLookUp.findAreaMatch(workingAddress);
+        if (areaMatchOpt.isPresent()) {
+            FuzzyMatchResult areaMatch = areaMatchOpt.get();
+            parsedAddress.setArea(areaMatch.getCanonicalName());
+            if (!areaMatch.isExact()) {
+                parsedAddress.addAutoCorrection(areaMatch.getCorrectionSummary());
+                workingAddress = workingAddress.replace(areaMatch.getMatchedText().toLowerCase(), areaMatch.getCanonicalName().toLowerCase());
+            }
+        }
 
+        // 3. State extraction with Fuzzy Matching
+        extractState(workingAddress, parsedAddress);
+
+        // 4. Country extraction with Fuzzy Matching
+        extractCountry(workingAddress, parsedAddress);
+
+        // 5. Postal code enrichment
         enrichFromPostalCode(parsedAddress);
 
-        extractStreet(cleanedAddress, parsedAddress);
-        extractLandmark(cleanedAddress, parsedAddress);
-        extractBuildingName(cleanedAddress, parsedAddress);
+        // 6. Granular component extraction on standardized working address
+        extractStreet(workingAddress, parsedAddress);
+        extractLandmark(workingAddress, parsedAddress);
+        extractBuildingName(workingAddress, parsedAddress);
 
         return parsedAddress;
     }
@@ -67,9 +124,7 @@ public class AddressParser {
             String address,
             ParsedAddress parsedAddress
     ) {
-
         Matcher matcher = HOUSE_NUMBER_PATTERN.matcher(address);
-
         if (matcher.find()) {
             parsedAddress.setHouseNumber(matcher.group(1));
         }
@@ -79,9 +134,7 @@ public class AddressParser {
             String address,
             ParsedAddress parsedAddress
     ) {
-
         Matcher matcher = POSTAL_CODE_PATTERN.matcher(address);
-
         if (matcher.find()) {
             parsedAddress.setPostalCode(matcher.group());
         }
@@ -91,22 +144,26 @@ public class AddressParser {
             String address,
             ParsedAddress parsedAddress
     ) {
-
-        if (address.contains("telangana")) {
-            parsedAddress.setState("Telangana");
-        } else if (address.contains("andhra pradesh")) {
-            parsedAddress.setState("Andhra Pradesh");
-        }
+        fuzzyMatcher.findBestMatch(address, INDIAN_STATES).ifPresent(match -> {
+            String formattedState = formatText(match.getCanonicalName());
+            match.setCanonicalName(formattedState);
+            parsedAddress.setState(formattedState);
+            if (!match.isExact()) {
+                parsedAddress.addAutoCorrection(match.getCorrectionSummary());
+            }
+        });
     }
 
     private void extractCountry(
             String address,
             ParsedAddress parsedAddress
     ) {
-
-        if (address.contains("india")) {
+        fuzzyMatcher.findBestMatch(address, COUNTRIES).ifPresent(match -> {
             parsedAddress.setCountry("India");
-        }
+            if (!match.isExact() && !match.getMatchedText().equalsIgnoreCase("india")) {
+                parsedAddress.addAutoCorrection(String.format("'%s' -> 'India'", match.getMatchedText()));
+            }
+        });
     }
 
     private void enrichFromPostalCode(ParsedAddress parsedAddress) {
@@ -205,7 +262,6 @@ public class AddressParser {
         }
 
         String beforeBoundary = address.substring(0, boundaryIndex).trim();
-
         String houseNumber = parsedAddress.getHouseNumber();
 
         if (houseNumber != null) {
@@ -238,17 +294,14 @@ public class AddressParser {
             }
         }
     }
+
     private String formatText(String text) {
-
         String[] words = text.split("\\s+");
-
         StringBuilder formatted = new StringBuilder();
 
         for (String word : words) {
             if (!word.isBlank()) {
-                formatted.append(
-                        Character.toUpperCase(word.charAt(0))
-                );
+                formatted.append(Character.toUpperCase(word.charAt(0)));
                 formatted.append(word.substring(1).toLowerCase());
                 formatted.append(" ");
             }

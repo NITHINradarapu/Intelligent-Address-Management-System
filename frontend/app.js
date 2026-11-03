@@ -66,6 +66,15 @@ function isAdmin() {
     return user && user.role === "ROLE_ADMIN";
 }
 
+function formatProcessingMessage(msg) {
+    if (!msg) return "—";
+    if (msg.includes("Auto-corrected:")) {
+        const parts = msg.split(" | Auto-corrected: ");
+        return `${parts[0]} <div class="auto-corrected-badge">🪄 <strong>Auto-corrected:</strong> ${parts[1]}</div>`;
+    }
+    return msg;
+}
+
 // ===================== UI SWITCHING =====================
 
 function showApp() {
@@ -187,7 +196,6 @@ async function loadCustomers() {
         }
         data.forEach((c) => {
             const tr = document.createElement("tr");
-            // Only show delete button for admins
             const deleteBtn = isAdmin()
                 ? `<button class="action-btn delete" onclick="deleteCustomer(${c.id})">Delete</button>`
                 : "";
@@ -353,7 +361,7 @@ async function loadAddresses() {
                 <td>${a.postalCode || "—"}</td>
                 <td>${confidenceHtml(a.confidenceScore)}</td>
                 <td><span class="${statusClass(a.status)}">${a.status || "—"}</span></td>
-                <td>${a.processingMessage || "—"}</td>
+                <td>${formatProcessingMessage(a.processingMessage)}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -381,7 +389,7 @@ function showAddressDetail(a) {
         ["State", a.state],
         ["Postal Code", a.postalCode],
         ["Country", a.country],
-        ["Message", a.processingMessage],
+        ["Message", formatProcessingMessage(a.processingMessage)],
         ["Created", formatDate(a.createdAt)],
         ["Updated", formatDate(a.updatedAt)],
     ];
@@ -392,7 +400,6 @@ function showAddressDetail(a) {
 }
 
 // ===================== INIT =====================
-// Check if user is already logged in (token in localStorage)
 if (getToken() && getUser()) {
     showApp();
 } else {
